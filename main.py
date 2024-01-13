@@ -36,6 +36,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from crud import create_table, create_image_metadata, get_image_metadata, update_image_metadata, delete_image_metadata
 import os
+from fastapi.responses import FileResponse
+
 
 app = FastAPI()
 app.add_middleware(
@@ -46,10 +48,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-create_table("your_database.db")
 
-@app.post("/upload/{db_name}/{key}")
-async def upload_file(db_name: str, key: str, file: UploadFile = File(...)):
+
+@app.post("/upload/{key}")
+async def upload_file( key: str, file: UploadFile = File(...),db_name: Optional[str] = None):
+    if not db_name:
+        db_name = "default"
     db_file = f"{db_name}.db"
     file_path = f"uploads/{file.filename}"
     with open(file_path, "wb") as f:
@@ -59,7 +63,9 @@ async def upload_file(db_name: str, key: str, file: UploadFile = File(...)):
     return JSONResponse(content={"message": "File uploaded successfully"})
 
 @app.get("/retrieve/{db_name}/{key}")
-async def retrieve_file(db_name: str, key: str, metadata_only: Optional[bool] = False):
+async def retrieve_file(db_name: str= "", key: str= "", metadata_only: Optional[bool] = False):
+    if not db_name:
+        db_name = "default"
     db_file = f"{db_name}.db"
     metadata = get_image_metadata(db_file, key)
 
@@ -72,7 +78,9 @@ async def retrieve_file(db_name: str, key: str, metadata_only: Optional[bool] = 
         return FileResponse(metadata[2])
 
 @app.put("/update/{db_name}/{key}")
-async def update_file(db_name: str, key: str, file: UploadFile = File(...)):
+async def update_file(db_name: str= "", key: str= "", file: UploadFile = File(...)):
+    if not db_name:
+        db_name = "default"
     db_file = f"{db_name}.db"
 
     new_file_path = f"uploads/{file.filename}"
@@ -83,7 +91,9 @@ async def update_file(db_name: str, key: str, file: UploadFile = File(...)):
     return JSONResponse(content={"message": "File updated successfully"})
 
 @app.delete("/delete/{db_name}/{key}")
-async def delete_file(db_name: str, key: str):
+async def delete_file(db_name: str = "", key: str= ""):
+    if not db_name:
+        db_name = "default"
     db_file = f"{db_name}.db"
 
     metadata = get_image_metadata(db_file, key)
@@ -94,5 +104,5 @@ async def delete_file(db_name: str, key: str):
     file_path = metadata[2]
     os.remove(file_path)
 
-    delete_image_metadata("your_database.db", key)
+    delete_image_metadata(db_name, key)
     return JSONResponse(content={"message": "File deleted successfully"})

@@ -26,11 +26,12 @@ def create_table(db_file):
     """)
     connection.commit()
     connection.close()
-    
+
 
 def create_image_metadata(db_file, key, file_path):
     connection = create_connection(db_file)
     cursor = connection.cursor()
+    create_table(db_file)
     cursor.execute("""
     INSERT INTO images (key, file_path) VALUES (?, ?)
     """, (key, file_path))

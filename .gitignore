@@ -1,2 +1,5 @@
 myenv/
-
+your_database.db
+uploads
+default.db
+__pycache__
