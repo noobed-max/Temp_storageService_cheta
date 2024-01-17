@@ -34,7 +34,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
-from crud import create_table, create_image_metadata, get_image_metadata, update_image_metadata, delete_image_metadata
+from crud import create_table, create_image_metadata, get_image_metadata #update_image_metadata, delete_image_metadata
 import os
 from fastapi.responses import FileResponse
 
@@ -48,22 +48,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def generate_random_string(length=8):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for _ in range(length))
 
-
-@app.post("/upload/{key}")
-async def upload_file( key: str, file: UploadFile = File(...),db_name: Optional[str] = None):
+@app.post("/upload/")
+async def upload_file( key: Optional[str] = None, file: UploadFile = File(...),db_name: Optional[str] = None):
     if not db_name:
         db_name = "default"
+    if not key:
+        key = generate_random_string()
+
+    # Create a directory with the key
+    key_directory = f"./{key}"
+    os.makedirs(key_directory, exist_ok=True)
+
     db_file = f"{db_name}.db"
-    file_path = f"uploads/{file.filename}"
+    file_path = f"{key}/{file.filename}"
     with open(file_path, "wb") as f:
         f.write(file.file.read())
 
     create_image_metadata(db_file, key, file_path)
     return JSONResponse(content={"message": "File uploaded successfully"})
 
-@app.get("/retrieve/{db_name}/{key}")
-async def retrieve_file(db_name: str= "", key: str= "", metadata_only: Optional[bool] = False):
+@app.get("/retrieve/")
+async def retrieve_file(db_name: Optional[str] = None, key: Optional[str] = None, metadata_only: Optional[bool] = False):
     if not db_name:
         db_name = "default"
     db_file = f"{db_name}.db"
@@ -76,7 +85,7 @@ async def retrieve_file(db_name: str= "", key: str= "", metadata_only: Optional[
         return JSONResponse(content={"key": metadata[1], "file_path": metadata[2]})
     else:
         return FileResponse(metadata[2])
-
+'''
 @app.put("/update/{db_name}/{key}")
 async def update_file(db_name: str= "", key: str= "", file: UploadFile = File(...)):
     if not db_name:
@@ -106,3 +115,4 @@ async def delete_file(db_name: str = "", key: str= ""):
 
     delete_image_metadata(db_name, key)
     return JSONResponse(content={"message": "File deleted successfully"})
+'''

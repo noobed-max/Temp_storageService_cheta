@@ -9,6 +9,8 @@ def delete_image_metadata
     #it is what it is
 '''
 import sqlite3
+from fastapi import HTTPException
+
 
 def create_connection(db_file):
     connection = sqlite3.connect(db_file)
@@ -32,6 +34,17 @@ def create_image_metadata(db_file, key, file_path):
     connection = create_connection(db_file)
     cursor = connection.cursor()
     create_table(db_file)
+
+    cursor.execute("""
+    SELECT EXISTS (SELECT 1 FROM images WHERE key = ? LIMIT 1)
+    """, (key,))
+    key_exists = cursor.fetchone()[0]
+
+    if key_exists:
+        # Key already exists, raise an HTTPException
+        connection.close()
+        raise HTTPException(status_code=400, detail=f"Key '{key}' already exists in the database")
+
     cursor.execute("""
     INSERT INTO images (key, file_path) VALUES (?, ?)
     """, (key, file_path))
@@ -47,7 +60,7 @@ def get_image_metadata(db_file, key):
     result = cursor.fetchone()
     connection.close()
     return result
-
+'''
 def update_image_metadata(db_file, key, new_file_path):
     connection = create_connection(db_file)
     cursor = connection.cursor()
@@ -64,4 +77,4 @@ def delete_image_metadata(db_file, key):
     DELETE FROM images WHERE key = ?
     """, (key,))
     connection.commit()
-    connection.close()
+    connection.close()'''
