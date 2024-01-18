@@ -37,6 +37,8 @@ from typing import Optional
 from crud import create_table, create_image_metadata, get_image_metadata #update_image_metadata, delete_image_metadata
 import os
 from fastapi.responses import FileResponse
+import string
+import random
 
 
 app = FastAPI()
@@ -48,14 +50,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+db_name = "default"
+
+
 def generate_random_string(length=8):
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for _ in range(length))
 
 @app.post("/upload/")
 async def upload_file( key: Optional[str] = None, file: UploadFile = File(...),db_name: Optional[str] = None):
-    if not db_name:
-        db_name = "default"
     if not key:
         key = generate_random_string()
 
@@ -71,10 +74,8 @@ async def upload_file( key: Optional[str] = None, file: UploadFile = File(...),d
     create_image_metadata(db_file, key, file_path)
     return JSONResponse(content={"message": "File uploaded successfully"})
 
-@app.get("/retrieve/")
+@app.get("/retrieve/{key}")
 async def retrieve_file(db_name: Optional[str] = None, key: Optional[str] = None, metadata_only: Optional[bool] = False):
-    if not db_name:
-        db_name = "default"
     db_file = f"{db_name}.db"
     metadata = get_image_metadata(db_file, key)
 
