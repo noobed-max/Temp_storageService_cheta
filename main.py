@@ -2,12 +2,14 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
-from crud import create_table, create_image_metadata, get_image_metadata #update_image_metadata, delete_image_metadata
+from typing import Optional, List
+from crud import create_table, create_image_metadata, get_metadata #update_image_metadata, delete_image_metadata
 import os
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse , StreamingResponse
 import string
 import random
+import zipfile
+import io
 
 
 app = FastAPI()
@@ -19,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-db_name = "default"
+
 
 
 def generate_random_string(length=8):
@@ -27,47 +29,52 @@ def generate_random_string(length=8):
     return ''.join(random.choice(letters) for _ in range(length))
 
 @app.post("/upload/")
-async def upload_file( key: Optional[str] = None, file: UploadFile = File(...),db_name: Optional[str] = None):
+async def upload_file(files: List[UploadFile], key: Optional[str] = None):
     if not key:
         key = generate_random_string()
 
     # Create a directory with the key
-    key_directory = f"./{key}"
-    os.makedirs(key_directory, exist_ok=True)
+    key_directory = f"{key}"
+    directory_key = f"./{key_directory}"
+    os.makedirs(directory_key , exist_ok=True)
+    for file in files:
+        file_path = f"{key}/{file.filename}"
+        with open(file_path, "wb") as f:
+            f.write(file.file.read())
 
-    db_file = f"{db_name}.db"
-    file_path = f"{key}/{file.filename}"
-    with open(file_path, "wb") as f:
-        f.write(file.file.read())
-
-    create_image_metadata(db_file, key, file_path)
+    create_image_metadata( key, key_directory)
     return JSONResponse(content={"message": "File uploaded successfully"})
 
+
+
 @app.get("/retrieve/{key}")
-async def retrieve_file(db_name: Optional[str] = None, key: Optional[str] = None, metadata_only: Optional[bool] = False):
-    db_file = f"{db_name}.db"
-    metadata = get_image_metadata(db_file, key)
+async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
+    path = get_metadata(key)
+    zip_file_path = f"{key}.zip"
+    if os.path.exists(path):
+        if metadata_only:
+            return {"path": path}
+        else:
+            with zipfile.ZipFile(zip_file_path, 'w') as zipf:
+                for root, dirs, files in os.walk(path):
+                    for file in files:
+                        zipf.write(os.path.join(root, file), 
+                           os.path.relpath(os.path.join(root, file), 
+                           os.path.join(path, '..')))
+            with open(zip_file_path, 'rb') as file:
+                zip_bytes = file.read()
 
-    if not metadata:
-        raise HTTPException(status_code=404, detail="Image not found")
+            # Remove the zip file after reading its content
+            os.remove(zip_file_path)
 
-    if metadata_only:
-        return JSONResponse(content={"key": metadata[1], "file_path": metadata[2]})
+            # Return the zip file as a StreamingResponse
+            return StreamingResponse(io.BytesIO(zip_bytes),
+                                     media_type="application/zip",
+                                     headers={"Content-Disposition": f"attachment; filename={key}.zip"})
     else:
-        return FileResponse(metadata[2])
+        raise HTTPException(status_code=404, detail="Key not found in the database.")
 '''
-@app.put("/update/{db_name}/{key}")
-async def update_file(db_name: str= "", key: str= "", file: UploadFile = File(...)):
-    if not db_name:
-        db_name = "default"
-    db_file = f"{db_name}.db"
 
-    new_file_path = f"uploads/{file.filename}"
-    with open(new_file_path, "wb") as f:
-        f.write(file.file.read())
-
-    update_image_metadata(db_file, key, new_file_path)
-    return JSONResponse(content={"message": "File updated successfully"})
 
 @app.delete("/delete/{db_name}/{key}")
 async def delete_file(db_name: str = "", key: str= ""):

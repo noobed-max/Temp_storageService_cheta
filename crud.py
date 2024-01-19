@@ -2,6 +2,7 @@
 import sqlite3
 from fastapi import HTTPException
 
+db_file = "default.db"
 
 def create_connection(db_file):
     connection = sqlite3.connect(db_file)
@@ -14,14 +15,14 @@ def create_table(db_file):
     CREATE TABLE IF NOT EXISTS images (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         key TEXT NOT NULL,
-        file_path TEXT NOT NULL
+        key_directory TEXT NOT NULL
     )
     """)
     connection.commit()
     connection.close()
 
 
-def create_image_metadata(db_file, key, file_path):
+def create_image_metadata( key, key_directory):
     connection = create_connection(db_file)
     cursor = connection.cursor()
     create_table(db_file)
@@ -34,23 +35,32 @@ def create_image_metadata(db_file, key, file_path):
     if key_exists:
         # Key already exists, raise an HTTPException
         connection.close()
-        raise HTTPException(status_code=400, detail=f"Key '{key}' already exists in the database")
+        #raise HTTPException(status_code=400, detail=f"Key '{key}' already exists in the database")
+        return {"status": "success", "message":"File uploaded successfully"}
 
     cursor.execute("""
-    INSERT INTO images (key, file_path) VALUES (?, ?)
-    """, (key, file_path))
+    INSERT INTO images (key, key_directory) VALUES (?, ?)
+    """, (key, key_directory))
     connection.commit()
     connection.close()
 
-def get_image_metadata(db_file, key):
-    connection = create_connection(db_file)
-    cursor = connection.cursor()
-    cursor.execute("""
-    SELECT * FROM images WHERE key = ?
-    """, (key,))
-    result = cursor.fetchone()
-    connection.close()
-    return result
+def get_metadata(key):
+
+    try:
+        connection = create_connection(db_file)
+        cursor = connection.cursor()
+        cursor.execute("""
+        SELECT key_directory FROM images WHERE key = ?
+        """, (key,))
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+        else:
+            return None
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching metadata: {str(e)}")
+    finally:
+        connection.close()
 '''
 def update_image_metadata(db_file, key, new_file_path):
     connection = create_connection(db_file)

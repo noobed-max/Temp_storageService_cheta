@@ -1,12 +1,4 @@
 myenv/
-your_database.db
-uploads
 default.db
 __pycache__
-test1
-test3
-test4
-test5
-test6
-None.db
-
+project_storage.code-workspace
