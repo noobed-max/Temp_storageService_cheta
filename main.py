@@ -15,7 +15,7 @@ import io
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # This allows all origins, you can specify your frontend URL instead
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,7 +33,6 @@ async def upload_file(files: List[UploadFile], key: Optional[str] = None):
     if not key:
         key = generate_random_string()
 
-    # Create a directory with the key
     key_directory = f"{key}"
     directory_key = f"./{key_directory}"
     os.makedirs(directory_key , exist_ok=True)
@@ -49,8 +48,11 @@ async def upload_file(files: List[UploadFile], key: Optional[str] = None):
 
 @app.get("/retrieve/{key}")
 async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
+
     path = get_metadata(key)
+
     zip_file_path = f"{key}.zip"
+
     if os.path.exists(path):
         if metadata_only:
             return {"path": path}
@@ -61,18 +63,20 @@ async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
                         zipf.write(os.path.join(root, file), 
                            os.path.relpath(os.path.join(root, file), 
                            os.path.join(path, '..')))
+                        
             with open(zip_file_path, 'rb') as file:
                 zip_bytes = file.read()
 
-            # Remove the zip file after reading its content
             os.remove(zip_file_path)
 
-            # Return the zip file as a StreamingResponse
+
             return StreamingResponse(io.BytesIO(zip_bytes),
                                      media_type="application/zip",
                                      headers={"Content-Disposition": f"attachment; filename={key}.zip"})
     else:
         raise HTTPException(status_code=404, detail="Key not found in the database.")
+    
+#the below is not maintained will return error as huge as the whale that lives down the street
 '''
 
 

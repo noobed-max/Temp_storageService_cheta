@@ -33,9 +33,7 @@ def create_image_metadata( key, key_directory):
     key_exists = cursor.fetchone()[0]
 
     if key_exists:
-        # Key already exists, raise an HTTPException
         connection.close()
-        #raise HTTPException(status_code=400, detail=f"Key '{key}' already exists in the database")
         return {"status": "success", "message":"File uploaded successfully"}
 
     cursor.execute("""
@@ -61,6 +59,8 @@ def get_metadata(key):
         raise HTTPException(status_code=500, detail=f"Error fetching metadata: {str(e)}")
     finally:
         connection.close()
+#the below is not maintained will return error as huge as the whale that lives down the street
+
 '''
 def update_image_metadata(db_file, key, new_file_path):
     connection = create_connection(db_file)
