@@ -1,16 +1,16 @@
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI,  UploadFile, HTTPException #,File
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
 from crud import create_table, create_image_metadata, get_metadata #update_image_metadata, delete_image_metadata
 import os
-from fastapi.responses import FileResponse, HTMLResponse , StreamingResponse
+from fastapi.responses import FileResponse #, HTMLResponse , StreamingResponse
 import string
 import random
-import zipfile
-import io
-
+#import zipfile
+#import io
+import base64
 
 app = FastAPI()
 app.add_middleware(
@@ -50,9 +50,36 @@ async def upload_file(files: List[UploadFile], key: Optional[str] = None):
 async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
 
     path = get_metadata(key)
+    if not path or not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Key not found")
 
+    encoded_files = []
+
+    # Iterate through files in the specified path
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+
+        # Check if the item is a file
+        if os.path.isfile(file_path):
+            with open(file_path, "rb") as file:
+                # Read the file content
+                file_content = file.read()
+
+                # Encode the file content using base64
+                encoded_data = base64.b64encode(file_content).decode("utf-8")
+
+                # Append the encoded data to the list
+                encoded_files.append({
+                    "encoded_data": encoded_data
+                })
+
+    return encoded_files
+    
+
+
+#the below is not maintained will return error as huge as the whale that lives down the street
+'''
     zip_file_path = f"{key}.zip"
-
     if os.path.exists(path):
         if metadata_only:
             return {"path": path}
@@ -76,9 +103,8 @@ async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
     else:
         raise HTTPException(status_code=404, detail="Key not found in the database.")
     
-#the below is not maintained will return error as huge as the whale that lives down the street
 '''
-
+'''
 
 @app.delete("/delete/{db_name}/{key}")
 async def delete_file(db_name: str = "", key: str= ""):
