@@ -1,41 +1,30 @@
-import os
-import requests
+from clientinterface import retreieve
 import base64
-API_URL = "http://127.0.0.1:8000"
+import os
 
 
-def save(API_URL, key, value):
+def get_file(key):
     try:
-        data = {"key": key, "encoded_content": value}
-        response = requests.post(f"{API_URL}/upload/", data=data)
-
-        if response.status_code == 200:
-            print("Update successful:", response.json())
-        else:
-            raise requests.HTTPError(response.text)
-
-    except requests.HTTPError as e:
+        directory_key = f"./{key}_new"
+        os.makedirs(directory_key , exist_ok=True)
+        files = retreieve(key)
+        for index, file in enumerate(files):
+        
+            decoded_data = base64.b64decode(file)
+            filename = f"file_{index}.jpg"
+            output_file_path = os.path.join(directory_key, filename)
+            with open(output_file_path, "wb") as output_file:
+                output_file.write(decoded_data)
+            print(f"File {index} written to {output_file_path}")
+    except Exception as e:
         print("Error:", e)
+key="test1"
+get_file(key)
 
-def retreieve(key):
-    try:
-        response= requests.get(f"{API_URL}/retrieve/{key}")
-        if response.status_code == 200:
-            return response.json()
-            print("Update successful:", response.json())
-        else:
-            raise requests.HTTPError(response.text)
+            
 
-    except requests.HTTPError as e:
-        print("Error:", e)
+"""
 
-#key = "string_test"
-# Assuming value is a list of strings
-#value = ["string1", "string2", "string3"]
-#save(API_URL, key, value)
-#key="test1"
-#retreieve(key)
-'''
 def encode_and_store_files(directory_path):
     encoded_content = []
     API_URL = "http://127.0.0.1:8000"
@@ -66,4 +55,5 @@ def encode_and_store_files(directory_path):
 # Example usage
 if __name__ == "__main__":
     directory_path = '/home/deadsec/Documents/list'
-    encode_and_store_files(directory_path)'''
+    encode_and_store_files(directory_path)
+    """

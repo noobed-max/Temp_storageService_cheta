@@ -23,24 +23,25 @@ def create_table(db_file):
 
 
 def create_image_metadata( key, key_directory):
-    connection = create_connection(db_file)
-    cursor = connection.cursor()
-    create_table(db_file)
+        connection = create_connection(db_file)
+        cursor = connection.cursor()
+        create_table(db_file)
 
-    cursor.execute("""
-    SELECT EXISTS (SELECT 1 FROM images WHERE key = ? LIMIT 1)
-    """, (key,))
-    key_exists = cursor.fetchone()[0]
+        cursor.execute("""
+        SELECT EXISTS (SELECT 1 FROM images WHERE key = ? LIMIT 1)
+        """, (key,))
+        key_exists = cursor.fetchone()[0]
 
-    if key_exists:
+        if key_exists:
+            connection.close()
+            return {"status": "success", "message":"File uploaded successfully"}
+
+        cursor.execute("""
+        INSERT INTO images (key, key_directory) VALUES (?, ?)
+        """, (key, key_directory))
+        connection.commit()
         connection.close()
-        return {"status": "success", "message":"File uploaded successfully"}
-
-    cursor.execute("""
-    INSERT INTO images (key, key_directory) VALUES (?, ?)
-    """, (key, key_directory))
-    connection.commit()
-    connection.close()
+    
 
 def get_metadata(key):
 

@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI,  UploadFile, HTTPException #,File
+from fastapi import FastAPI,Form,  UploadFile, HTTPException #,File
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
@@ -8,8 +8,6 @@ import os
 from fastapi.responses import FileResponse #, HTMLResponse , StreamingResponse
 import string
 import random
-#import zipfile
-#import io
 import base64
 
 app = FastAPI()
@@ -29,6 +27,23 @@ def generate_random_string(length=8):
     return ''.join(random.choice(letters) for _ in range(length))
 
 @app.post("/upload/")
+async def update_file(key: str = Form(...), encoded_content: List[str] = Form(...)):
+    try:
+        if not key:
+            key = generate_random_string()
+        key_directory = f"{key}"
+        directory_key = f"./{key_directory}"
+        os.makedirs(directory_key , exist_ok=True)
+        for i, encoded_items in enumerate(encoded_content, start=1):
+                output_file_path = os.path.join(directory_key, f'encodedtxt{i}.txt')
+
+                with open(output_file_path, 'wb') as output_file:
+                    output_file.write(encoded_items.encode())
+        create_image_metadata( key, key_directory)
+        return JSONResponse(content={"message": "File uploaded successfully"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+'''@app.post("/upload/")
 async def upload_file(files: List[UploadFile], key: Optional[str] = None):
     if not key:
         key = generate_random_string()
@@ -42,10 +57,28 @@ async def upload_file(files: List[UploadFile], key: Optional[str] = None):
             f.write(file.file.read())
 
     create_image_metadata( key, key_directory)
-    return JSONResponse(content={"message": "File uploaded successfully"})
+    return JSONResponse(content={"message": "File uploaded successfully"})'''
+
+@app.get("/retrieve/{key}")
+async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
+    path = get_metadata(key)
+    if not path or not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Key not found")
+
+    binary_data_list = []
+
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+
+        if os.path.isfile(file_path):
+            with open(file_path, "rb") as file:
+                binary_data = file.read()
+
+                binary_data_list.append(binary_data)
 
 
-
+    return binary_data_list
+'''
 @app.get("/retrieve/{key}")
 async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
 
@@ -74,8 +107,7 @@ async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
                 })
 
     return encoded_files
-    
-
+'''
 
 #the below is not maintained will return error as huge as the whale that lives down the street
 '''
