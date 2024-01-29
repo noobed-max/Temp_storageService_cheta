@@ -3,12 +3,14 @@ from fastapi import FastAPI,Form,  UploadFile, HTTPException #,File
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
-from crud import create_table, create_image_metadata, get_metadata #update_image_metadata, delete_image_metadata
+from crud import create_connection, check_key_existence, create_image_metadata, get_metadata #update_image_metadata, delete_image_metadata
 import os
 from fastapi.responses import FileResponse #, HTMLResponse , StreamingResponse
 import string
 import random
 import base64
+import uvicorn
+
 
 app = FastAPI()
 app.add_middleware(
@@ -18,7 +20,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+def DatabseRun(API_URL,Port):
+    if not API_URL:
+        API_URL = "http://127.0.0.1"
+    if not Port:
+        Port = "8000"
+    uvicorn.run(app, host=f"{API_URL}", port=f"{Port}", reload=True)
 
 
 
@@ -29,10 +36,12 @@ def generate_random_string(length=8):
 @app.post("/upload/")
 async def update_file(key: str = Form(...), encoded_content: List[str] = Form(...)):
     try:
+        if check_key_existence(key):
+            raise HTTPException(status_code=400, detail="Key already exists")
         if not key:
             key = generate_random_string()
         key_directory = f"{key}"
-        directory_key = f"./{key_directory}"
+        directory_key = f"./storage/{key_directory}"
         os.makedirs(directory_key , exist_ok=True)
         for i, encoded_items in enumerate(encoded_content, start=1):
                 output_file_path = os.path.join(directory_key, f'encodedtxt{i}.txt')
@@ -109,49 +118,4 @@ async def retrieve_file(key: str, metadata_only: Optional[bool] = False):
     return encoded_files
 '''
 
-#the below is not maintained will return error as huge as the whale that lives down the street
-'''
-    zip_file_path = f"{key}.zip"
-    if os.path.exists(path):
-        if metadata_only:
-            return {"path": path}
-        else:
-            with zipfile.ZipFile(zip_file_path, 'w') as zipf:
-                for root, dirs, files in os.walk(path):
-                    for file in files:
-                        zipf.write(os.path.join(root, file), 
-                           os.path.relpath(os.path.join(root, file), 
-                           os.path.join(path, '..')))
-                        
-            with open(zip_file_path, 'rb') as file:
-                zip_bytes = file.read()
 
-            os.remove(zip_file_path)
-
-
-            return StreamingResponse(io.BytesIO(zip_bytes),
-                                     media_type="application/zip",
-                                     headers={"Content-Disposition": f"attachment; filename={key}.zip"})
-    else:
-        raise HTTPException(status_code=404, detail="Key not found in the database.")
-    
-'''
-'''
-
-@app.delete("/delete/{db_name}/{key}")
-async def delete_file(db_name: str = "", key: str= ""):
-    if not db_name:
-        db_name = "default"
-    db_file = f"{db_name}.db"
-
-    metadata = get_image_metadata(db_file, key)
-
-    if not metadata:
-        raise HTTPException(status_code=404, detail="Image not found")
-
-    file_path = metadata[2]
-    os.remove(file_path)
-
-    delete_image_metadata(db_name, key)
-    return JSONResponse(content={"message": "File deleted successfully"})
-'''
