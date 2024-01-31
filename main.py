@@ -36,8 +36,6 @@ def generate_random_string(length=8):
 @app.post("/upload/")
 async def update_file(key: str = Form(...), encoded_content: List[str] = Form(...)):
     try:
-        if check_key_existence(key):
-            raise HTTPException(status_code=400, detail="Key already exists")
         if not key:
             key = generate_random_string()
         key_directory = f"{key}"
