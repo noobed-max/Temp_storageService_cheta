@@ -23,17 +23,7 @@ def test_upload_fail():
     )
     print(response.json())
     assert response.status_code == 422
-    assert response.json() == {
-        "detail": [
-            {
-                "type": "missing",
-                "loc": ["body", "encoded_content"],
-                "msg": "Field required",
-                "input": None,
-                "url": "https://errors.pydantic.dev/2.5/v/missing"
-            }
-        ]
-    }
+    assert response.json() == {'detail': [{'type': 'missing', 'loc': ['body', 'encoded_content'], 'msg': 'Field required', 'input': None, 'url': 'https://errors.pydantic.dev/2.6/v/missing'}]}
 
 def test_retrieve_file_success():
 
