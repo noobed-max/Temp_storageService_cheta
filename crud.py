@@ -23,13 +23,16 @@ def create_table(db_file):
     connection.close()
 
 def check_key_existence(key):
-    connection = create_connection(db_file)
-    create_table(db_file)
-    cursor = connection.cursor()
-    cursor.execute("SELECT id FROM store WHERE key=?", (key,))
-    result = cursor.fetchone()
-    connection.close()
-    return result is not None
+        connection = create_connection(db_file)
+        create_table(db_file)
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM store WHERE key=?", (key,))
+        result = cursor.fetchone()
+        connection.close()
+        if result is None:
+            return False
+        else:
+            return True
 
 
 def create_image_metadata( key, key_directory):
