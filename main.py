@@ -20,12 +20,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-def DatabseRun(API_URL,Port):
-    if not API_URL:
-        API_URL = "http://127.0.0.1"
-    if not Port:
-        Port = "8000"
-    uvicorn.run(app, host=f"{API_URL}", port=f"{Port}", reload=True)
+
 
 
 
